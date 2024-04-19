@@ -1,0 +1,51 @@
+##i personally perfer both inscript and in terminal comments so apologies if its redundant!
+
+#import arcpy and my geodatabase
+import arcpy
+arcpy.env.workspace = r"C:\Users\smh2315\Desktop\Lab5_data_fragmentation_practice.gdb"
+arcpy.env.overwriteOutput = True
+print("data is stored in geodatabase named 'Lab5_data_fragmentation_practice.gdb' on desktop")
+
+#assigning feature classes to a variable
+fclist = arcpy.ListFeatureClasses()
+print("feature classes assigned to a variable")
+
+#creating an empty list to add buffers to
+bufferList = []
+print("empty list successfully created")
+
+#buffering for 100 meters
+for fc in fclist:
+    if fc == "roads2000" or fc == "roads1980":
+        arcpy.Buffer_analysis(fc, fc + "_buffer", "100 meters")
+        #appending buffer list with new buffers
+        bufferList.append(fc + "_buffer")
+print("buffer complete")
+
+#appending buffer list with landcover
+bufferList.append("landcover")
+
+#unioning the buffer list and creating a new polygon called Roadsbuffer
+arcpy.Union_analysis(bufferList, "RoadBuffers")
+print("union successfully preformed with all items in bufferlist")
+
+#assigning my new union a variable
+inFeature = "RoadBuffers"
+
+#making a virtual table called layerview for my newly created union
+arcpy.management.MakeTableView(inFeature, "layerview")
+#selecting forest land and 1980 roads buffer
+arcpy.SelectLayerByAttribute_management("layerview", "NEW_SELECTION", "Land_Type= 'Forest Land' AND FID_roads1980_buffer = -1")
+#summing the area of my previously made selection (forest land in year 2000)
+arcpy.analysis.Statistics("layerview", "Forestland1980", [["Shape_Area","SUM"]])
+print("table with area 1980 statistics created. it's called Forestland1980.")
+
+#clearing my selection
+arcpy.SelectLayerByAttribute_management("layerview", "CLEAR_SELECTION")
+print("selection cleared")
+
+#reselecting for the roads2000 buffer zone and landtype forest
+arcpy.SelectLayerByAttribute_management("layerview", "NEW_SELECTION", "Land_Type= 'Forest Land' AND FID_roads2000_buffer = -1")
+#summing the area of my previously made selection (forest land in year 2000)
+arcpy.analysis.Statistics("layerview", "Forestland2000", [["Shape_Area","SUM"]])
+print("table with area 2000 statistics created. it's called Forestland2000.")
